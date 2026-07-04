@@ -79,7 +79,7 @@ class MHAttention(nn.Module): # (Attention)
         self.n_max_inp = n_max_inp
         self.h = h
 
-        assert d%h == 0, f'Size mismathc, d {d} cant be split to h {h} heads, fix values'
+        assert d%h == 0, f'Size mismathc, d {d} cant be split to h {h} heads, fix valuesgit '
 
         # head attention Linear layers
         self.att_lst = nn.ModuleList(
