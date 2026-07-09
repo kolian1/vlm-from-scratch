@@ -94,20 +94,24 @@ class MHAttention(nn.Module): # (Attention)
         res = self.w_out(res)
         return res
 
-# testing
-name= 'trivial_att' 
-d=512
-n_words = 8
-h=4 # number of heads
-att = Attention(name='single headed attention', d_in=d, d_out=d)
-mh_att = MHAttention(name='multi headed attention', d=d, h=h)
-x = torch.randn(size=(n_words, d))
 
-is_print_res = False
-for mdl in [att, mh_att]:
-    res = mdl.forward(q=x,k=x,v=x)
-    if is_print_res:
-        print(f"{mdl}\n{x}\n{res}\n")
-    n_train_params = sum(p.numel() for p in mdl.parameters() if p.requires_grad)
-    print(f'\n\nModel {mdl}.\nModel has {n_train_params} trainable params')
+def testing():
+    # testing
+    name= 'trivial_att' 
+    d=512
+    n_words = 8
+    h=4 # number of heads
+    att = Attention(name='single headed attention', d_in=d, d_out=d)
+    mh_att = MHAttention(name='multi headed attention', d=d, h=h)
+    x = torch.randn(size=(n_words, d))
 
+    is_print_res = False
+    for mdl in [att, mh_att]:
+        res = mdl.forward(q=x,k=x,v=x)
+        if is_print_res:
+            print(f"{mdl}\n{x}\n{res}\n")
+        n_train_params = sum(p.numel() for p in mdl.parameters() if p.requires_grad)
+        print(f'\n\nModel {mdl}.\nModel has {n_train_params} trainable params')
+
+if __name__ == '__main__':
+    testing()

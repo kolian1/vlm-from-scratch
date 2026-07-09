@@ -82,31 +82,35 @@ class PositionalEncoding(nn.Module): # (nn.Embedding)
         shift_pos_enc = self.pos_enc[i_pos]
         y = x + shift_pos_enc
         return y
-    
-# testing
-n_b = 2 # no of batches
-n_t = 5 # no of tocken in  batch
-d_model = 16
-vocab_size = 500
-max_len=int(1e3)
 
-# random integres representing tockenizer vocab tokens
-x= torch.randint(0, vocab_size, size=(n_b, n_t))
+def testing(): 
+    # testing
+    n_b = 2 # no of batches
+    n_t = 5 # no of tocken in  batch
+    d_model = 16
+    vocab_size = 500
+    max_len=int(1e3)
 
-toc2emb = TokenEmbedding(d_model=d_model, vocab_size=vocab_size)
-x_emb = toc2emb.forward(x)
-print(f'Token dims {x.shape} d_model={d_model}, out emd dims {x_emb.shape}')
+    # random integres representing tockenizer vocab tokens
+    x= torch.randint(0, vocab_size, size=(n_b, n_t))
 
-pos_emb = PositionalEncoding(max_len=max_len, d_model=d_model)
+    toc2emb = TokenEmbedding(d_model=d_model, vocab_size=vocab_size)
+    x_emb = toc2emb.forward(x)
+    print(f'Token dims {x.shape} d_model={d_model}, out emd dims {x_emb.shape}')
 
-# some pos encoder tests
-min_vals, max_vals = pos_emb.pos_enc.min(axis=1)[0], pos_emb.pos_enc.max(axis=1)[0]
+    pos_emb = PositionalEncoding(max_len=max_len, d_model=d_model)
 
-print('Pos endoder values should be [-1, 1]')
-print(f'min:{min_vals.min()}\nmax:{max_vals.max()}')
-print('Pos encoing of 0 should be 0')
-for i in [0, 6]:   
-    print(f'min[{i}]:{min_vals[i]}\nmax[{i}]:{max_vals[i]}')
+    # some pos encoder tests
+    min_vals, max_vals = pos_emb.pos_enc.min(axis=1)[0], pos_emb.pos_enc.max(axis=1)[0]
 
-x_pos_emb = pos_emb.forward(x_emb)
-print(f'Token dims {x.shape} d_model={d_model}, out positnial emd dims {x_pos_emb.shape}')
+    print('Pos endoder values should be [-1, 1]')
+    print(f'min:{min_vals.min()}\nmax:{max_vals.max()}')
+    print('Pos encoing of 0 should be 0')
+    for i in [0, 6]:   
+        print(f'min[{i}]:{min_vals[i]}\nmax[{i}]:{max_vals[i]}')
+
+    x_pos_emb = pos_emb.forward(x_emb)
+    print(f'Token dims {x.shape} d_model={d_model}, out positnial emd dims {x_pos_emb.shape}')
+
+if __name__ =='__main__':
+    testing()
