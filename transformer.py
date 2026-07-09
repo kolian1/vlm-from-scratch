@@ -134,8 +134,8 @@ class Transformer(nn.Module):
         super().__init__()
         self.encoder = Encoder(vocab_size=vocab_size, max_len=max_len, n=n, d=d, d_ff=d_ff, h=h)
         self.decoder = Decoder(vocab_size=vocab_size, max_len=max_len, n=n, d=d, d_ff=d_ff, h=h)
-        causal_mask = torch.tril(torch.ones(max_len, max_len)).type(torch.bool)
-        causal_mask = ~causal_mask # all values above digonal True, others False
+        
+        causal_mask = torch.triu(torch.ones(max_len, max_len), diagonal=1).type(torch.bool)
         self.register_buffer('causal_mask', causal_mask)
 
     def forward(self, x:torch.tensor, out:torch.tensor)->torch.tensor:
