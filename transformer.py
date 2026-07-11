@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn # is same as previous?
 from attention import MHAttention
 from embeddings import TokenEmbedding, PositionalEncoding
+
 '''
 Implementing the remaing Transomfr parts
 Add and norm y = att(x), z = LayerNorm(x + y)
