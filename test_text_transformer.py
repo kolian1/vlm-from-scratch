@@ -3,6 +3,7 @@ import torch
 from torch import optim
 from torch import nn
 
+from text_embeddings import TextTockenEmbedding
 from transformer import Transformer
 
 class Tokeniser():
@@ -127,7 +128,8 @@ Despite the steep climb and heavy load, the engine slowly succeeds in pulling th
     n_print = min(max(1, int(n_epoch/10)), 10)
     lr = 1e-3
     # train tranformer
-    model = Transformer(vocab_size=vocab_size, max_len=max_len, d=d, n=n)
+    text_embedder = TextTockenEmbedding(vocab_size=vocab_size, max_len=max_len, d=d)
+    model = Transformer(embedder=text_embedder, vocab_size=vocab_size, max_len=max_len, d=d, n=n)
     loss_fn = nn.CrossEntropyLoss(ignore_index=toc.PAD)
     opt = optim.Adam(model.parameters(), lr=lr)
     stop_acc = 0.975

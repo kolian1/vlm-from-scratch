@@ -82,7 +82,20 @@ class PositionalEncoding(nn.Module): # (nn.Embedding)
         shift_pos_enc = self.pos_enc[i_pos]
         y = x + shift_pos_enc
         return y
+    
+class TextTockenEmbedding(nn.Module):
+    def __init__(self, vocab_size: int, max_len:int, d:int):
+        super().__init__()
 
+        self.emb_enc = TokenEmbedding(d_model=d, vocab_size=vocab_size)
+        self.pos_enc = PositionalEncoding(max_len=max_len, d_model=d)
+        return
+    
+    def forward(self, x: torch.tensor)->torch.tensor:
+        x = self.emb_enc(x)
+        y = self.pos_enc(x)
+        return y
+        
 def testing(): 
     # testing
     n_b = 2 # no of batches

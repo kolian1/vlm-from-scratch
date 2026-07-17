@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn # is same as previous?
 from attention import MHAttention
-from embeddings import TokenEmbedding, PositionalEncoding
+from text_embeddings import TextTockenEmbedding
 
 '''
 Implementing the remaing Transomfr parts
@@ -68,17 +68,13 @@ class EncLayer(nn.Module):
         return y
 
 class Encoder(nn.Module):
-    def __init__(self, vocab_size: int, max_len:int, n:int, d:int, d_ff: int=None, h:int=4):
+    def __init__(self, n:int, d:int, d_ff: int=None, h:int=4):
         super().__init__()
 
-        self.emb_enc = TokenEmbedding(d_model=d, vocab_size=vocab_size)
-        self.pos_enc = PositionalEncoding(max_len=max_len, d_model=d)
         self.enc_list = nn.ModuleList(EncLayer(d=d, d_ff=d_ff, h=h) for _ in range(n))
     
     def forward(self, x: torch.tensor, mask: torch.tensor=None)->torch.tensor:
-        x = self.emb_enc(x)
-        x = self.pos_enc(x)
-
+        # x here is already tocken->encoding->pos encoded,so all needs to do is Enc layers
         for enc in self.enc_list:
             x = enc(x, mask)
         return x
@@ -113,17 +109,14 @@ class DecLayer(nn.Module):
         return y
     
 class Decoder(nn.Module):
-    def __init__(self, vocab_size: int, max_len:int, n:int, d:int, d_ff: int=None, h:int=4):
+    def __init__(self, vocab_size: int, n:int, d:int, d_ff: int=None, h:int=4):
         super().__init__()
 
-        self.emb_enc = TokenEmbedding(d_model=d, vocab_size=vocab_size)
-        self.pos_enc = PositionalEncoding(max_len=max_len, d_model=d)
         self.dec_list = nn.ModuleList(DecLayer(d=d, d_ff=d_ff, h=h) for _ in range(n))
         self.dec_linear = nn.Linear(d, vocab_size)
     
     def forward(self, x:torch.tensor, mask_out:torch.tensor, x_enc: torch.tensor)->torch.tensor:
-        x = self.emb_enc(x)
-        x = self.pos_enc(x)
+        # x here is already tocken->encoding->pos encoded,so all needs to do is Enc layers
         for dec in self.dec_list:
             x = dec(x=x, mask_out=mask_out, x_enc=x_enc)
         
@@ -131,19 +124,24 @@ class Decoder(nn.Module):
         return x
 
 class Transformer(nn.Module):
-    def __init__(self, vocab_size: int, max_len:int, n:int, d:int, d_ff: int=None, h:int=4):
+    def __init__(self, embedder: TextTockenEmbedding, vocab_size: int, max_len:int, n:int, d:int, d_ff: int=None, h:int=4):
         super().__init__()
-        self.encoder = Encoder(vocab_size=vocab_size, max_len=max_len, n=n, d=d, d_ff=d_ff, h=h)
-        self.decoder = Decoder(vocab_size=vocab_size, max_len=max_len, n=n, d=d, d_ff=d_ff, h=h)
+        self.embedder = embedder
+        self.encoder = Encoder(n=n, d=d, d_ff=d_ff, h=h)
+        self.decoder = Decoder(vocab_size=vocab_size, n=n, d=d, d_ff=d_ff, h=h)
         
         causal_mask = torch.triu(torch.ones(max_len, max_len), diagonal=1).type(torch.bool)
         self.register_buffer('causal_mask', causal_mask)
 
     def forward(self, x:torch.tensor, out:torch.tensor)->torch.tensor:
-        x_enc = self.encoder(x)
+        # Generate the modality reevant embeddings (token->embedidngs->pos encoded mebeddings)
+        x_emb = self.embedder(x)
+        x_enc = self.encoder(x_emb)
+
         # build the casual mask, bool of dims 
         n_out = out.size(-1)
-        y = self.decoder(x_enc=x_enc, x=out, mask_out=self.causal_mask[:n_out, :n_out])
+        out_emb = self.embedder(out)
+        y = self.decoder(x_enc=x_enc, x=out_emb, mask_out=self.causal_mask[:n_out, :n_out])
         return y
 
 def test():
@@ -162,7 +160,8 @@ def test():
     # x = torch.randn(size=(b, n_words, d))
     x = torch.randint(low=0, high=vocab_size, size=(b, n_in_words))
     y = torch.randint(low=0, high=vocab_size, size=(b, n_out_words))
-    trans = Transformer(max_len=max_len, vocab_size=vocab_size, n=n_layers, d=d, d_ff=d_ff)
+    text_embedder = TextTockenEmbedding(vocab_size=vocab_size, max_len=max_len, d=d)
+    trans = Transformer(embedder=text_embedder, vocab_size=vocab_size, max_len=max_len, n=n_layers, d=d, d_ff=d_ff)
     y_pred = trans(x=x, out=y)
 
     print(f'x dims {x.shape}')
