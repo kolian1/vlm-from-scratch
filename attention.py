@@ -13,7 +13,7 @@ high level here before coding, a
 Attention class, to store d, N layers (where do they go) ?init with inpu init 3 linear layers Q,K,V
 Attention forward. 
     rececing input, ruing through Q, K, V of dims [n_seq, d] 
-    resturning  soft_max(Q@KT/SQRT(d))@V- TODO- verify dims are good.
+    resturning  soft_max(Q@KT/SQRT(d))@V
 Then I would work on multi head adaptation- creating attenton per head, and applying them per head- in a loop or something. 
 The if needed build the encoder self attantoin, decoder self attenton (with the heads under the hood) and cross atention. 
 '''
@@ -49,7 +49,7 @@ class Attention(nn.Module):
         res = q@k.transpose(-1,-2) # [n_inp, d_out]@[n_inp, d_out]T=[n_inp, n_inp]
         res = res/self.sqrt_d
         if mask is not None:
-            # here mask off bool,indicating what values to set to -Inf
+            # here mask off bool, indicating what values to set to -Inf
             res = res.masked_fill(mask, float('-inf'))
             # # laternatively we can use mask of vals, with top diag -Inf
             # res = res + mask

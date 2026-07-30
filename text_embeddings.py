@@ -4,8 +4,9 @@ Build the encoding needed for Attention module
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-import math
 
+import math
+from typing import List
 
 '''
 Transformer references 
@@ -95,7 +96,51 @@ class TextTockenEmbedding(nn.Module):
         x = self.emb_enc(x)
         y = self.pos_enc(x)
         return y
+
+class Tokeniser_ASCI():
+    '''
+    Endcode chacter to their ASCII value, and decode back
+    Add special vaues for BOS, EOS, PAD
+    '''
+    max_char_id = 127 # maximal value for encoide chaarcter
+
+    def __init__(self, max_len:int=0):
+        self.max_len = max_len-2 # the 2 is for BOS, EOS
         
+        self.max_enc_id = self.max_char_id+ 1 # max value used by encoder
+        self.PAD = self.max_enc_id
+        self.max_enc_id += 1
+        self.BOS = self.max_enc_id
+        self.max_enc_id += 1
+        self.EOS = self.max_enc_id
+
+    def raw_encode_line(self, line: str)->List[int]:
+        # does the raw encoding, gets the line tockens only WO BOS EOS PAD
+        enc_line = [ord(c) for c in line]
+        return enc_line
+
+    def wrap_enc_line(self, enc_line: List[int])->List[int]:
+        # adds the BOS, EOS, PAD
+        n_line = len(enc_line)
+        n_pad = 0
+        if self.max_len > 0:
+            assert n_line <= self.max_len, f'Encoded line length {n_line} exceeds limit of {self.max_len}'
+            # padding is needed
+            n_pad = self.max_len - n_line
+            
+        pad = [self.PAD]*n_pad
+        return [self.BOS] + enc_line + [self.EOS]+ pad
+    
+    def encode(self, line: str)->List[int]:
+        enc_line = self.raw_encode_line(line)
+        full_enc_line = self.wrap_enc_line(enc_line)
+        return full_enc_line
+       
+    def decode(self, tockens: List[int])->str:
+        chars = [chr(toc) for toc in tockens if toc <= self.max_char_id]
+        line = ''.join(chars)
+        return line
+       
 def testing(): 
     # testing
     n_b = 2 # no of batches

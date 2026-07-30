@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from typing import Optional
 
 '''
 Gaol: build image emdegings egenrator
@@ -10,13 +11,17 @@ image → non-overlapping patches → linear projection → sequence of patch to
 
 '''
 class VisionEmbeddings(nn.Module):
-    def __init__(self, d: int, patch_size:int=16, img_size: int=256, c:int=3, verbose:int=5, rand_scale: float=0.02):
+    def __init__(
+            self, d: int, patch_size:int=16, img_size: int=256, c:int=3, verbose:int=5, 
+                 rand_scale: Optional[float]=0.02, is_add_CLS: bool=True
+                 ):
         super().__init__()
         self.patch_size = patch_size
         self.img_size = img_size
         self.d = d
         self.verbose = verbose
         self.rand_scale = rand_scale
+        self.is_add_CLS = is_add_CLS
 
         # pre build bilinear grid
         n_dim_patch = img_size // patch_size
@@ -34,12 +39,15 @@ class VisionEmbeddings(nn.Module):
 
         # pos endocing
         # self.pe = PositionalEncoding(max_len=n_patches*n_patches+1, d_model=d)
-        if rand_scale:
-            self.pe_table = nn.Parameter(rand_scale*torch.randn(size=(n_dim_patch, n_dim_patch, d)))
+        if rand_scale is None:
+            # this allows using rand_scale=0, initialising with any value including 0, 1 for None
+            rand_scale = 1
+        self.pe_table = nn.Parameter(rand_scale*torch.randn(size=(n_dim_patch, n_dim_patch, d)))
+
+        if self.is_add_CLS:
+            # CLS used by ViT for classification
             self.CLS = nn.Parameter(rand_scale*torch.randn(size=(1, 1, d))) # randn or zeros?
-        else:
-            self.pe_table = nn.Parameter(torch.randn(size=(n_dim_patch, n_dim_patch, d)))
-            self.CLS = nn.Parameter(torch.randn(size=(1, 1, d))) # randn or zeros?
+        
     
     def _pad_img(self, img: torch.tensor)->torch.tensor:
         # if image dims are not an whole multiply of self.patch_size
@@ -105,15 +113,21 @@ class VisionEmbeddings(nn.Module):
         # posisble make the private _patch_img
         # use tmp\embeddings.py methods to generte positn encoding for n_patches
         # sum and return
+        # note expected image shape [B, C, H, W]
         img = self._pad_img(img)
         (B, C, H, W) = img.shape # img [B, C, H, W]
         x = self._patch_img(img=img)
         x = self._linear_project(patches=x)
         # pos endoce all patches, skipping CLS
         x = x + self._pos_encode(h=H, w=W)
-        # add CLS
-        exp_LLS = self.CLS.expand(B, -1, -1)
-        y = torch.cat([exp_LLS, x], dim=-2) # [B, n+1, d]
+        if self.is_add_CLS:
+            # CLS used by ViT for classification
+            # add CLS
+            exp_LLS = self.CLS.expand(B, -1, -1)
+            y = torch.cat([exp_LLS, x], dim=-2) # [B, n+1, d]
+        else:
+            # skip adding CLS
+            y = x
 
         return y
 

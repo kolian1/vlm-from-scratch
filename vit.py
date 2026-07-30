@@ -26,8 +26,12 @@ class VisionEncoder(nn.Module):
         self.mlp_head = mlp_head
   
     def forward(self, img: torch.tensor)->torch.tensor:
+        # check otherwie att_emb_img[:, 0,:] is the first image patch embedding
+        assert self.vision_emb.is_add_CLS, 'To use CLS embedding is_add_CLS must be set to True'
+
         emb_img = self.vision_emb(img)
         att_emb_img = self.att_encoder(emb_img)
+        
         cls_emd = att_emb_img[:, 0,:]
         pred = self.mlp_head(cls_emd)
         return pred

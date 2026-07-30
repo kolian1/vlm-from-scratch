@@ -100,7 +100,7 @@ class DecLayer(nn.Module):
         '''
         out MHAtt-> addnorm-> input gated MHAt->addnorm->FF->addnorm
         '''
-        y =  self.out_att(q=x, k=x, v=x, mask=mask_out) 
+        y = self.out_att(q=x, k=x, v=x, mask=mask_out) 
         x = self.out_norm(x+y)
         y = self.mixed_att(q=x, k=x_enc, v=x_enc, mask=mask_mixed)
         x = self.mixed_norm(x+y)

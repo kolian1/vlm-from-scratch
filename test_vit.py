@@ -66,10 +66,10 @@ else:
 
     d = 64
 
-# # inspect the data
-# inspect_dataset(dataset=dataset)    # dataset
-# inspect_dataloader(data_loader)
-# show_data_samples(dataset=sub_set)
+# inspect the data
+inspect_dataset(dataset=train_dataset)    # dataset
+inspect_dataloader(train_data_loader)
+show_data_samples(dataset=train_dataset)
 
 # # check labels disribution
 # print(dataset.targets[:n_sub_samples])
