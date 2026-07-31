@@ -112,7 +112,8 @@ class VLM(nn.Module):
         #   n = n_vision + n_text(1 (BOS) +n_p(pompt tockens) + 1(\n) + #answer(n_pad) + 1(EOS)  ) 
         #   i_p = iloc(\n)
         # Verified with attention.py->Attention: Expected mask of bools with True indicating values to be -Inf
-        casuality_mask = torch.ones(size=(n_fused, n_fused), dtype=torch.bool) 
+        device = fused_emb.device
+        casuality_mask = torch.ones(size=(n_fused, n_fused), dtype=torch.bool, device=device) 
         # set to False diagnoal i==j and beneath it i<j
         casuality_mask = torch.triu(casuality_mask, diagonal=1)
         # the inputs are not required to look only to the left, bi-derectiona attntion allowed
@@ -138,7 +139,8 @@ class VLM(nn.Module):
         # recalculate to avoid repeating for each tpcken
         vision_emb = self.vision_tower(img)
         B, max_len = prompt.shape
-        is_proc = torch.ones(size=(B, ), dtype=bool)
+        device = vision_emb.device
+        is_proc = torch.ones(size=(B, ), dtype=bool).to(device=device)
 
         i_p = n_p + 2
         max_new_tokens = max_new_tokens or max_len-i_p

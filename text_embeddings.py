@@ -79,7 +79,7 @@ class PositionalEncoding(nn.Module): # (nn.Embedding)
     def forward(self, x:torch.tensor)->torch.tensor:
         n_x = x.shape[-2]
         assert n_x <= self.max_len, f'Input lenght {n_x} excedded maximla supported lenght {self.max_len}'
-        i_pos = torch.arange(0, n_x)
+        i_pos = torch.arange(0, n_x, device=self.pos_enc.device)
         shift_pos_enc = self.pos_enc[i_pos]
         y = x + shift_pos_enc
         return y

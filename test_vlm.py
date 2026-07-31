@@ -114,7 +114,7 @@ def calc_acc(pred_logits: torch.tensor, labels: torch.tensor, toc:Tokeniser_ASCI
 
 def train_VLM(
         model: VLM, images: torch.tensor, toc:Tokeniser_ASCI, prompt_q:str, prompt_a:List[str],
-        n_epoch:int, n_batch:int = 3, lr: float=1e-3, 
+        n_epoch:int, n_batch:int = 3, lr: float=1e-3, device: torch.device=torch.device('cpu'),
         stop_loss: Optional[float]=None, stop_acc:Optional[float]=None, )->VLM:
     # TODO move data and cmopute to GPU if exist, or have it added to class?
     [n_samples, C, H, W] = images.shape
@@ -129,6 +129,9 @@ def train_VLM(
     n_p = len(toc.raw_encode_line(prompt_q)) # fixed constant -- prompt never varies
 
     prompts_toc = torch.tensor([toc.encode(prompt) for prompt in prompts])
+    images = images.to(device)
+    prompts_toc = prompts_toc.to(device)
+
     max_len = prompts_toc.shape[-1]
     for i_epoch in range(n_epoch):     
         # modify labels if train data is shuffled   
@@ -179,7 +182,7 @@ def train_VLM(
 def pred_eval(model: VLM, images: torch.tensor, toc:Tokeniser_ASCI,
               prompt_q:str, prompt_a:List[str], 
               actual_labels:Optional[List[str]]=None, n_eval_samples: Optional[int]=None,
-              is_generate: bool = False):
+              is_generate: bool = False, device: torch.device=torch.device('cpu')):
     # infer with trained model and show predicted answers
     n_samples = len(images)
     model.eval()
@@ -191,6 +194,8 @@ def pred_eval(model: VLM, images: torch.tensor, toc:Tokeniser_ASCI,
     if not n_eval_samples or n_eval_samples > n_samples or n_eval_samples < 0: 
         n_eval_samples = n_samples # n_samples//3
     i_eval = torch.arange(n_samples)[:n_eval_samples]
+    images = images.to(device)
+    prompts_toc = prompts_toc.to(device)
     if is_generate:
         # geneated tockens in this case
         preds_tockens = model.generate(
@@ -222,7 +227,7 @@ def pred_eval(model: VLM, images: torch.tensor, toc:Tokeniser_ASCI,
     return model
 
 
-def img_color_test(n_samples = 6):
+def img_color_test(device: torch.device, n_samples = 6,):
     # create batch of images and aligned prompts
     # generate toy dataste of colored images
     torch.manual_seed(12)
@@ -279,13 +284,16 @@ def img_color_test(n_samples = 6):
     fusion_decoder = Encoder(n=n_fusion, d=d_text)
     model = VLM(vision_tower=vision_tower, text_tower=text_tower, fusion_decoder=fusion_decoder)
 
+    print(f'Running "img_color_test" on {device.type}')
+    model.to(device)
+
     train_VLM(
         model=model, images=images, prompt_q=prompt_q, prompt_a=sample_names, toc=toc, 
-        n_batch=n_batch, n_epoch=100, lr=1e-3, stop_loss=5e-3, stop_acc=0.95, )
+        n_batch=n_batch, n_epoch=100, lr=1e-3, stop_loss=5e-3, stop_acc=0.95, device=device)
 
     print('\nOver-fitting test')
     pred_eval(model=model, images=images, prompt_q=prompt_q, prompt_a=sample_names, toc=toc,
-              is_generate=True)
+              is_generate=True, device=device)
 
     # ablation test
     print('\n\nAblation test')
@@ -305,10 +313,12 @@ def img_color_test(n_samples = 6):
     color_a = '' # 'White' ''
     prompt_a = [color_a]*n_samples 
     pred_eval(model=model, images=abl_images, prompt_q=prompt_q, prompt_a=prompt_a, toc=toc, actual_labels=actual_clrs, 
-              is_generate=True)
+              is_generate=True, device=device)
     return
 
 if __name__ == '__main__':
     # Converges for 6, but not for 12
     n_samples=6     # len(colors_d)
-    img_color_test(n_samples=n_samples)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cpu')
+    img_color_test(n_samples=n_samples, device=device)
