@@ -115,6 +115,13 @@ Despite the steep climb and heavy load, the engine slowly succeeds in pulling th
         model.train()
         for i_batch in range(n_batches):
             pred = model(x[i_batch], dec_input[i_batch]) # [b, line, vocab] # [i_batch] or [i_batch, :, :]
+
+            # align preds with labels for CE loss
+            # [B, n_fused/n_ans, vocab_size] -> [B, vocab_size, n_fused/n_ans]
+            # note the permute- may be confusiong. CE desigen for image segmentatoms, and expects [B, class, H, W]
+            # Thus assumes dimention 1 to encode the class, thus we move vocab_size to be at deimntion 1
+            # alternative would be to flattedn both preds->[n_preds, vocab_size], labels->[n_labels]
+            # loss_fn(preds.reshape(-1, vocab_size), labels[i_batch].reshape(-1))
             loss = loss_fn(pred.permute(0,2,1), dec_target[i_batch])
 
             model.zero_grad()

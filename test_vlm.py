@@ -105,7 +105,7 @@ def trunc_at_eos(tockens: List[int], eos: int):
     return tockens
 
 def calc_acc(pred_logits: torch.tensor, labels: torch.tensor, toc:Tokeniser_ASCI):
-    pred_id = pred_logits.argmax(-2)
+    pred_id = pred_logits.argmax(-2) # [n_batch_samples, vocab_size, n_tocken] -> [n_batch_samples, n_tocken]
     pred_text = [toc.decode(trunc_at_eos(line, eos=toc.EOS)) for line in pred_id.tolist()]
     label_text = [toc.decode(line) for line in labels.tolist()]
     acc = 0
@@ -139,7 +139,8 @@ def train_VLM(
         # modify labels if train data is shuffled   
         idx = torch.randperm(n_samples)
         images_batch = images[idx].reshape(n_batches, n_batch, C, H, W)
-        prompts_toc_batch = prompts_toc[idx].reshape(n_batches, n_batch, max_len)
+        prompts_toc_batch = prompts_toc[idx].reshape(n_batches, n_batch, max_len) # -> [bathes, batch_samples, max_len]
+        # [bathes, batch_samples, n_ans]
         labels = prompts_toc_batch[:, :, n_p+2:] # (text-local answer start = 1(BOS)+n_p+1('\n')), sliced per-batch
 
         epoch_loss = 0
@@ -154,8 +155,12 @@ def train_VLM(
                 prompt=prompts_toc_batch[i_batch], 
                 n_p=n_p, 
                 is_ans_only=True)
-            # make pres aligned with labels
+            # make preds aligned with labels for CE loss
             # [B, n_fused/n_ans, vocab_size] -> [B, vocab_size, n_fused/n_ans]
+            # note the permute- may be confusiong. CE desigen for image segmentatoms, and expects [B, class, H, W]
+            # Thus assumes dimention 1 to encode the class, thus we move vocab_size to be at deimntion 1
+            # alternative would be to flattedn both preds->[n_preds, vocab_size], labels->[n_labels]
+            # loss_fn(preds.reshape(-1, vocab_size), labels[i_batch].reshape(-1))
             preds = logits.permute(0, 2, 1)
             
             batch_loss = loss_fn(preds, labels[i_batch])
