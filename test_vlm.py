@@ -65,6 +65,8 @@ def generate_color_images(colors: List[List[int]], img_shape: Tuple[int, int, in
 
 def show_images(images:torch.tensor, titles:List[str], n_max_single_row_cols:int = 6, is_torch_notation: bool=True):
     # Show gird of images and their titles
+    # move imahges to CPU needed by matplotlib
+    images = images.to(torch.device('cpu'))
     if is_torch_notation:
         # permute torch to Color last notation
         # [B, C, H, W]->[B, H, W, C]
@@ -182,7 +184,8 @@ def train_VLM(
 def pred_eval(model: VLM, images: torch.tensor, toc:Tokeniser_ASCI,
               prompt_q:str, prompt_a:List[str], 
               actual_labels:Optional[List[str]]=None, n_eval_samples: Optional[int]=None,
-              is_generate: bool = False, device: torch.device=torch.device('cpu')):
+              is_generate: bool = False, is_show: bool = False,
+              device: torch.device=torch.device('cpu')):
     # infer with trained model and show predicted answers
     n_samples = len(images)
     model.eval()
@@ -221,7 +224,8 @@ def pred_eval(model: VLM, images: torch.tensor, toc:Tokeniser_ASCI,
         assert len(eval_titles) == len(actual_labels)
         eval_titles = [f"{ttl}, Actual label '{lbl}'" for ttl, lbl in zip(eval_titles, actual_labels)]
     print('\n'.join(eval_titles))
-    #  show_images(images=images, titles=eval_titles, n_max_single_row_cols=3, is_torch_notation=True)
+    if is_show:
+        show_images(images=images, titles=eval_titles, n_max_single_row_cols=3, is_torch_notation=True)
     
     # retrn trained model
     return model
@@ -298,7 +302,7 @@ def img_color_test(device: torch.device, n_samples = 6,):
     # ablation test
     print('\n\nAblation test')
     img_noise = torch.randint(low=0, high=255, size=(1, H, W, C))
-    img_pink = generate_color_images(colors=[[255, 192, 203]], img_shape=(H, W, C), clr_var=0.0, clr_scale=clr_scale)
+    img_noisy_pink = generate_color_images(colors=[[255, 192, 203]], img_shape=(H, W, C), clr_var=0.2, clr_scale=clr_scale)
     img_noisy_gray = generate_color_images(colors=[[128, 128, 128]], img_shape=(H, W, C), clr_var=0.2, clr_scale=clr_scale)
     img_RGB = generate_color_images(
         colors=[[255, 0, 0],
@@ -306,19 +310,20 @@ def img_color_test(device: torch.device, n_samples = 6,):
                 [0, 0, 255]], 
         img_shape=(H, W, C), clr_var=0.0, clr_scale=clr_scale)
 
-    abl_images = torch.cat([img_noise, img_pink, img_noisy_gray, img_RGB], dim=0)
+    abl_images = torch.cat([img_noise, img_noisy_pink, img_noisy_gray, img_RGB], dim=0)
     abl_images = abl_images.permute(0, 3, 1, 2).float()/clr_scale
     n_samples = len(abl_images)
-    actual_clrs = ['Noise', 'Pink', 'Noisy Gray', 'Red', 'Green', 'Blue']
+    actual_clrs = ['Noise', 'Noisy Pink', 'Noisy Gray', 'Red', 'Green', 'Blue']
     color_a = '' # 'White' ''
     prompt_a = [color_a]*n_samples 
     pred_eval(model=model, images=abl_images, prompt_q=prompt_q, prompt_a=prompt_a, toc=toc, actual_labels=actual_clrs, 
-              is_generate=True, device=device)
+              is_generate=True, is_show=True,
+              device=device)
     return
 
 if __name__ == '__main__':
-    # Converges for 6, but not for 12
-    n_samples=6     # len(colors_d)
+    # Converges for 6 and 12 colors
+    n_samples=len(colors_d)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # device = torch.device('cpu')
     img_color_test(n_samples=n_samples, device=device)
