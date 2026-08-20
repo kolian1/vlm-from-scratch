@@ -1,6 +1,6 @@
 # vlm-from-scratch
 
-A hands-on exercise building a transformer, a ViT, and a small VLM entirely from scratch — no `torch.nn.Transformer`, no pretrained backbones. Following Umar Jamil's [YouTube series](https://www.youtube.com/@umarjamilai) and [diagrams](https://github.com/hkproj/transformer-from-scratch-notes/blob/main/Diagrams_V2.pdf) for the transformer/VLM core, plus the ViT and PaliGemma papers directly for the vision and fusion pieces.
+A hands-on exersize building a transformer, a ViT, and a small VLM entirely from scratch — no `torch.nn.Transformer`, no pretrained backbones. Following Umar Jamil's [YouTube series](https://www.youtube.com/@umarjamilai) and [diagrams](https://github.com/hkproj/transformer-from-scratch-notes/blob/main/Diagrams_V2.pdf) for the transformer/VLM core, plus the ViT and PaliGemma papers directly for the vision and fusion pieces.
 
 **References:**
 * Attention Is All You Need [arxiv](https://arxiv.org/abs/1706.03762), [pdf](https://arxiv.org/pdf/1706.03762)
